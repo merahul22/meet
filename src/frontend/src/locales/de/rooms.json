@@ -3,7 +3,7 @@
     "heading": {
       "normal": "Du hast das Meeting verlassen",
       "duplicateIdentity": "Du bist dem Meeting von einem anderen Gerät aus beigetreten",
-      "participantRemoved": "Du wurdest von der*dem Organisator:in aus dem Meeting entfernt"
+      "participantRemoved": "Du wurdest vom Host aus dem Meeting entfernt"
     },
     "home": "Zur Startseite zurückkehren",
     "back": "Dem Meeting erneut beitreten"
@@ -383,7 +383,7 @@
     "body": "Transkribiere bis zu {{max_duration}} Meetingdauer.",
     "bodyWithoutMaxDuration": "Transkribieren dein Meeting ohne Zeitbegrenzung.",
     "details": {
-      "receiver": "Das Transkript wird an die*den Organisator:in und die Mitorganisierenden gesendet.",
+      "receiver": "Das Transkript wird an den Host und die Co-Hosts gesendet.",
       "destination": "Ein neues Dokument wird erstellt auf",
       "destinationUnknown": "Ein neues Dokument wird erstellt",
       "language": "Meeting-Sprache:",
@@ -416,7 +416,7 @@
     },
     "premium": {
       "heading": "Premium-Funktion",
-      "body": "Diese Funktion ist öffentlichen Bediensteten vorbehalten. Wenn deine E-Mail-Adresse nicht autorisiert ist, kontaktiere bitte den Support, um Zugriff zu erhalten.",
+      "body": "Diese Funktion ist für Sie nicht verfügbar. Bitte wenden Sie sich an den Support, um weitere Informationen zu erhalten.",
       "linkMore": "Dokumentation öffnen",
       "linkAriaLabel": "Dokumentation zum Premium-Zugang öffnen – öffnet in neuem Tab",
       "dividerLabel": "ODER",
@@ -438,7 +438,7 @@
     "linkMore": "Dokumentation öffnen",
     "linkAriaLabel": "Dokumentation zur Aufzeichnung öffnen – öffnet in neuem Tab",
     "details": {
-      "receiver": "Die Aufzeichnung wird an die*den Organisator:in und die Mitorganisierenden gesendet.",
+      "receiver": "Die Aufzeichnung wird an den Host und die Co-Hosts gesendet.",
       "destination": "Diese Aufzeichnung wird vorübergehend auf unseren Servern gespeichert",
       "loading": "Aufzeichnung wird gestartet",
       "linkMore": "Mehr erfahren",
@@ -467,6 +467,22 @@
         "buttonLabel": "Anfrage senden"
       }
     },
+    "premium": {
+      "heading": "Premium-Funktion",
+      "body": "Diese Funktion ist für Sie nicht verfügbar. Bitte wenden Sie sich an den Support, um weitere Informationen zu erhalten.",
+      "linkMore": "Dokumentation öffnen",
+      "linkAriaLabel": "Dokumentation zum Premium-Zugang öffnen – öffnet in neuem Tab",
+      "dividerLabel": "ODER",
+      "login": {
+        "heading": "Anmeldung erforderlich",
+        "body": "Nur die*der Ersteller:in bzw. Admin kann die Aufzeichnung starten. Melde dich an, um deine Berechtigungen zu überprüfen."
+      },
+      "request": {
+        "heading": "Aufnahme anfragen",
+        "body": "Die Moderation wird benachrichtigt und kann die Aufnahme starten.",
+        "buttonLabel": "Anfrage senden"
+      }
+    },
     "durationMessage": "(begrenzt auf {{max_duration}})"
   },
   "errorRecordingAlertDialog": {
@@ -478,7 +494,7 @@
     "button": "OK"
   },
   "admin": {
-    "description": "Diese Einstellungen für Organisierende ermöglichen dir die Kontrolle über dein Meeting. Nur Organisierende haben Zugriff auf diese Optionen.",
+    "description": "Diese Host-Einstellungen ermöglichen dir die Kontrolle über dein Meeting. Nur Hosts haben Zugriff auf diese Optionen.",
     "access": {
       "title": "Raumzugang",
       "description": "Diese Einstellungen gelten auch für zukünftige Meetings in diesem Raum.",

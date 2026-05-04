@@ -12,6 +12,19 @@ and this project adheres to
 
 - ✨(backend) allow room configuration and access level via external api #1260
 - ✨(backend) add metadata collection of VAD, connection and chat events
+- ✨(backend) introduce add-ons authentication backend
+- 💬(backend) clarify french transcription audio download link text #1299
+- 🚧(addons) introduce initial Microsoft Outlook add-in support (alpha)
+- 🔧(backend) add setting to toggle application token exchange mechanism
+- ✨(backend) support add-ons authentication in external viewset
+
+### Fixed
+
+- 🐛(summary) support webm #1290
+- ⬆️(backend) bump django-lasuite to v0.0.26
+- 🩹(frontend) use a more standard (quality) rating scale
+- 🩹(frontend) fix access control for screen recording feature flag
+- 🩹(frontend) fix reconnect loop caused by connectionObserverStore updates
 
 ## [1.14.0] - 2026-04-16
 

@@ -415,7 +415,7 @@
     },
     "premium": {
       "heading": "Premiumfunctie",
-      "body": "Deze functie is voorbehouden aan openbare medewerkers. Als uw e-mailadres niet is toegestaan, neem dan contact op met de support om toegang te krijgen.",
+      "body": "Deze functie is niet voor u beschikbaar. Neem contact op met de ondersteuning voor meer informatie.",
       "linkMore": "Documentatie openen",
       "linkAriaLabel": "Documentatie over premiumtoegang openen - opent in nieuw venster",
       "dividerLabel": "OF",
@@ -437,7 +437,7 @@
     "linkMore": "Documentatie openen",
     "linkAriaLabel": "Documentatie over opname openen - opent in nieuw venster",
     "details": {
-      "receiver": "De opname wordt verzonden naar de organisator en co-organisatoren.",
+      "receiver": "De opname wordt verzonden naar de host en co-hosts.",
       "destination": "Deze opname wordt tijdelijk op onze servers bewaard",
       "loading": "Opname wordt gestart",
       "linkMore": "Meer informatie",
@@ -466,6 +466,22 @@
         "buttonLabel": "Aanvragen"
       }
     },
+    "premium": {
+      "heading": "Premiumfunctie",
+      "body": "Deze functie is niet voor u beschikbaar. Neem contact op met de ondersteuning voor meer informatie.",
+      "linkMore": "Documentatie openen",
+      "linkAriaLabel": "Documentatie over premiumtoegang openen - opent in nieuw venster",
+      "dividerLabel": "OF",
+      "login": {
+        "heading": "Inloggen vereist",
+        "body": "Alleen de maker van de vergadering of een beheerder kan de opname starten. Log in om uw machtigingen te controleren."
+      },
+      "request": {
+        "heading": "Opname aanvragen",
+        "body": "De host wordt op de hoogte gebracht en kan de opname voor u inschakelen.",
+        "buttonLabel": "Aanvragen"
+      }
+    },
     "durationMessage": "(beperkt tot {{max_duration}})"
   },
   "errorRecordingAlertDialog": {
@@ -477,7 +493,7 @@
     "button": "Opnieuw proberen"
   },
   "admin": {
-    "description": "Deze organisatorinstellingen geven u controle over uw vergadering. Alleen organisatoren hebben toegang tot deze bedieningselementen.",
+    "description": "Deze hostinstellingen geven u controle over uw vergadering. Alleen hosts hebben toegang tot deze bedieningselementen.",
     "access": {
       "title": "Toegang tot vergadering",
       "description": "Deze instellingen zijn ook van toepassing op toekomstige sessies van deze vergadering.",

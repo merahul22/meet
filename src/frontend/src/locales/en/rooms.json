@@ -3,7 +3,7 @@
     "heading": {
       "normal": "You have left the meeting",
       "duplicateIdentity": "You have joined the meeting from another device",
-      "participantRemoved": "You have been removed from the meeting by an administrator"
+      "participantRemoved": "You have been removed from the meeting by a host"
     },
     "home": "Return to home",
     "back": "Rejoin the meeting"
@@ -328,7 +328,7 @@
       "chat": "Messages in the chat",
       "transcript": "Transcribe",
       "screenRecording": "Record",
-      "admin": "Admin settings",
+      "admin": "Host settings",
       "tools": "More tools",
       "info": "Meeting information"
     },
@@ -338,7 +338,7 @@
       "chat": "messages",
       "transcript": "transcribe",
       "screenRecording": "record",
-      "admin": "admin settings",
+      "admin": "host settings",
       "tools": "more tools",
       "info": "meeting information"
     },
@@ -415,7 +415,7 @@
     },
     "premium": {
       "heading": "Premium feature",
-      "body": "This feature is reserved for public agents. If your email address is not authorized, please contact support to get access.",
+      "body": "This feature is not available to you. Please contact support for more information.",
       "linkMore": "Open documentation",
       "linkAriaLabel": "Open documentation about premium access - opens in new window",
       "dividerLabel": "OR",
@@ -466,6 +466,22 @@
         "buttonLabel": "Request"
       }
     },
+    "premium": {
+      "heading": "Premium feature",
+      "body": "This feature is not available to you. Please contact support for more information.",
+      "linkMore": "Open documentation",
+      "linkAriaLabel": "Open documentation about premium access - opens in new window",
+      "dividerLabel": "OR",
+      "login": {
+        "heading": "You are not logged in!",
+        "body": "You must be logged in to use this feature. Please log in, then try again."
+      },
+      "request": {
+        "heading": "Request Recording",
+        "body": "The host will be notified and can enable recording for you.",
+        "buttonLabel": "Request"
+      }
+    },
     "durationMessage": "(limited to {{max_duration}}) "
   },
   "errorRecordingAlertDialog": {
@@ -477,7 +493,7 @@
     "button": "OK"
   },
   "admin": {
-    "description": "These organizer settings allow you to maintain control of your meeting. Only organizers can access these controls.",
+    "description": "These host settings allow you to maintain control of your meeting. Only hosts can access these controls.",
     "access": {
       "title": "Room access",
       "description": "These settings will also apply to future occurrences of this meeting.",

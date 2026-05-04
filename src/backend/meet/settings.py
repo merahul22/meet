@@ -819,6 +819,9 @@ class Base(Configuration):
     )
 
     # External Applications
+    APPLICATION_ENABLED = values.BooleanValue(
+        False, environ_name="APPLICATION_ENABLED", environ_prefix=None
+    )
     APPLICATION_CLIENT_ID_LENGTH = values.PositiveIntegerValue(
         40,
         environ_name="APPLICATION_CLIENT_ID_LENGTH",
@@ -868,6 +871,88 @@ class Base(Configuration):
     APPLICATION_ALLOW_USER_CREATION = values.BooleanValue(
         False,
         environ_name="APPLICATION_ALLOW_USER_CREATION",
+        environ_prefix=None,
+    )
+
+    # Addons
+    ADDONS_ENABLED = values.BooleanValue(
+        False,
+        environ_name="ADDONS_ENABLED",
+        environ_prefix=None,
+    )
+    ADDONS_SESSION_TTL = values.PositiveIntegerValue(
+        3600,
+        environ_name="ADDONS_SESSION_TTL",
+        environ_prefix=None,
+    )
+    ADDONS_TRANSIT_TOKEN_TTL = values.PositiveIntegerValue(
+        120,
+        environ_name="ADDONS_TRANSIT_TOKEN_TTL",
+        environ_prefix=None,
+    )
+    ADDONS_CSRF_SECRET = SecretFileValue(
+        None,
+        environ_name="ADDONS_CSRF_SECRET",
+        environ_prefix=None,
+    )
+    ADDONS_CACHE_PREFIX_SESSION = values.Value(
+        "sid",
+        environ_name="ADDONS_CACHE_PREFIX_SESSION",
+        environ_prefix=None,
+    )
+    ADDONS_CACHE_PREFIX_TRANSIT = values.Value(
+        "transit",
+        environ_name="ADDONS_CACHE_PREFIX_TRANSIT",
+        environ_prefix=None,
+    )
+    ADDONS_TOKEN_AUDIENCE = values.Value(
+        "addons",
+        environ_name="ADDONS_TOKEN_AUDIENCE",
+        environ_prefix=None,
+    )
+    ADDONS_TOKEN_ISSUER = values.Value(
+        "lasuite-meet",
+        environ_name="ADDONS_TOKEN_ISSUER",
+        environ_prefix=None,
+    )
+    ADDONS_TOKEN_TTL = values.PositiveIntegerValue(
+        7200,
+        environ_name="ADDONS_TOKEN_TTL",
+        environ_prefix=None,
+    )
+    ADDONS_TOKEN_ALG = values.Value(
+        "HS256",
+        environ_name="ADDONS_TOKEN_ALG",
+        environ_prefix=None,
+    )
+    ADDONS_TOKEN_TYPE = values.Value(
+        "Bearer",
+        environ_name="ADDONS_TOKEN_TYPE",
+        environ_prefix=None,
+    )
+    ADDONS_TOKEN_SECRET_KEY = SecretFileValue(
+        None,
+        environ_name="ADDONS_TOKEN_SECRET_KEY",
+        environ_prefix=None,
+    )
+    ADDONS_TOKEN_SCOPE = values.Value(
+        "rooms:create",
+        environ_name="ADDONS_TOKEN_SCOPE",
+        environ_prefix=None,
+    )
+    ADDONS_RANDOM_TOKEN_BYTE_LENGTH = values.PositiveIntegerValue(
+        60,
+        environ_name="ADDONS_RANDOM_TOKEN_BYTE_LENGTH",
+        environ_prefix=None,
+    )
+    ADDONS_SESSION_ID_COOKIE = values.Value(
+        "addonsSid",
+        environ_name="ADDONS_SESSION_ID_COOKIE",
+        environ_prefix=None,
+    )
+    ADDONS_PENDING_SESSION_KEY = values.Value(
+        "addons_sid",
+        environ_name="ADDONS_PENDING_SESSION_KEY",
         environ_prefix=None,
     )
 
@@ -997,11 +1082,16 @@ class Test(Base):
         "url": "http://127.0.0.1.nip.io:7880",
     }
 
+    APPLICATION_ENABLED = True
     APPLICATION_JWT_SECRET_KEY = "secret-key-padded-for-minimum-len!-application"  # noqa:S105
     APPLICATION_JWT_AUDIENCE = "Test inc."
 
     CELERY_TASK_ALWAYS_EAGER = True
     FILE_UPLOAD_ENABLED = True
+
+    ADDONS_ENABLED = True
+    ADDONS_CSRF_SECRET = "secret-key-padded-for-minimum-len!-addons"  # noqa:S105
+    ADDONS_TOKEN_SECRET_KEY = "secret-key-padded-for-minimum-len!-addons"  # noqa:S105
 
     def __init__(self):
         # pylint: disable=invalid-name

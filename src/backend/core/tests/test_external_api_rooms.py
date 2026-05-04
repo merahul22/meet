@@ -22,6 +22,28 @@ from core.models import ApplicationScope, RoleChoices, Room, RoomAccessLevel, Us
 pytestmark = pytest.mark.django_db
 
 
+def generate_addons_test_token(user, scopes, **overrides):
+    """Generate a valid JWT token signed with the addons secret for testing."""
+    now = datetime.now(timezone.utc)
+    scope_string = " ".join(scopes)
+
+    payload = {
+        "iss": settings.ADDONS_TOKEN_ISSUER,
+        "aud": settings.ADDONS_TOKEN_AUDIENCE,
+        "iat": now,
+        "exp": now + timedelta(seconds=settings.ADDONS_TOKEN_TTL),
+        "scope": scope_string,
+        "user_id": str(user.id),
+    }
+    payload.update(overrides)
+
+    return jwt.encode(
+        payload,
+        settings.ADDONS_TOKEN_SECRET_KEY,
+        algorithm=settings.ADDONS_TOKEN_ALG,
+    )
+
+
 def generate_test_token(user, scopes):
     """Generate a valid JWT token for testing."""
     now = datetime.now(timezone.utc)
@@ -121,6 +143,25 @@ def test_api_rooms_list_with_expired_token(settings):
 
     assert response.status_code == 401
     assert "expired" in str(response.data).lower()
+
+
+@mock.patch.object(ResourceServerAuthentication, "authenticate", return_value=None)
+def test_api_rooms_list_with_application_disabled(mock_rs_authenticate, settings):
+    """Listing rooms should return 401 when application is disabled."""
+
+    settings.APPLICATION_ENABLED = False
+
+    user = UserFactory()
+
+    # Generate expired token
+    token = generate_test_token(user, [ApplicationScope.ROOMS_LIST])
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.get("/external-api/v1.0/rooms/")
+
+    assert response.status_code == 401
+    mock_rs_authenticate.assert_called_once()
 
 
 @responses.activate
@@ -985,6 +1026,11 @@ def test_api_rooms_token_inactive_application(settings):
     assert "application is disabled." in str(response.data).lower()
 
 
+# ==============================
+# Resource Server
+# ==============================
+
+
 @responses.activate
 def test_resource_server_creates_user_on_first_authentication(settings):
     """New user should be created during first authentication.
@@ -1161,6 +1207,64 @@ def test_resource_server_authentication_successful(settings):
 
 
 @responses.activate
+def test_resource_server_authentication_successful_when_application_disabled(settings):
+    """Resource server should keep working when the application auth backend is disabled."""
+
+    settings.APPLICATION_ENABLED = False
+
+    user = UserFactory(sub="very-specific-sub")
+    other_user = UserFactory()
+
+    RoomFactory(access_level=RoomAccessLevel.PUBLIC)
+    RoomFactory(access_level=RoomAccessLevel.TRUSTED)
+    RoomFactory(access_level=RoomAccessLevel.RESTRICTED)
+    room_user_accesses = RoomFactory(
+        access_level=RoomAccessLevel.RESTRICTED, users=[user]
+    )
+    RoomFactory(access_level=RoomAccessLevel.RESTRICTED, users=[other_user])
+
+    assert (
+        settings.OIDC_RS_BACKEND_CLASS
+        == "core.external_api.authentication.ResourceServerBackend"
+    )
+
+    settings.OIDC_RS_CLIENT_ID = "some_client_id"
+    settings.OIDC_RS_CLIENT_SECRET = "some_client_secret"
+    settings.OIDC_RS_SCOPES_PREFIX = "lasuite_meet"
+
+    settings.OIDC_OP_URL = "https://oidc.example.com"
+    settings.OIDC_VERIFY_SSL = False
+    settings.OIDC_TIMEOUT = 5
+    settings.OIDC_PROXY = None
+    settings.OIDC_OP_JWKS_ENDPOINT = "https://oidc.example.com/jwks"
+    settings.OIDC_OP_INTROSPECTION_ENDPOINT = "https://oidc.example.com/introspect"
+
+    responses.add(
+        responses.POST,
+        "https://oidc.example.com/introspect",
+        json={
+            "iss": "https://oidc.example.com",
+            "aud": "some_client_id",  # settings.OIDC_RS_CLIENT_ID
+            "sub": "very-specific-sub",
+            "client_id": "some_service_provider",
+            "scope": "openid lasuite_meet lasuite_meet:rooms:list lasuite_meet:rooms:retrieve",
+            "active": True,
+        },
+    )
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION="Bearer some_token")
+    response = client.get("/external-api/v1.0/rooms/")
+
+    assert response.status_code == 200
+    results = response.json()["results"]
+    assert len(results) == 1
+    expected_ids = {str(room_user_accesses.id)}
+    results_id = {result["id"] for result in results}
+    assert expected_ids == results_id
+
+
+@responses.activate
 def test_resource_server_denies_access_with_insufficient_scopes(settings):
     """Requests should be denied when the token lacks required scopes.
 
@@ -1201,3 +1305,245 @@ def test_resource_server_denies_access_with_insufficient_scopes(settings):
     response = client.get("/external-api/v1.0/rooms/")
 
     assert response.status_code == 403
+
+
+# ==============================
+# Addons
+# ==============================
+
+
+def test_api_rooms_list_with_valid_addons_token():
+    """Listing rooms with a valid addons token should succeed."""
+    user = UserFactory()
+    room = RoomFactory(users=[(user, RoleChoices.OWNER)])
+
+    token = generate_addons_test_token(user, [ApplicationScope.ROOMS_LIST])
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.get("/external-api/v1.0/rooms/")
+
+    assert response.status_code == 200
+    assert response.data["count"] == 1
+    assert response.data["results"][0]["id"] == str(room.id)
+
+
+def test_api_rooms_retrieve_with_valid_addons_token():
+    """Retrieving a room with a valid addons token should succeed."""
+    user = UserFactory()
+    room = RoomFactory(users=[(user, RoleChoices.OWNER)])
+
+    token = generate_addons_test_token(user, [ApplicationScope.ROOMS_RETRIEVE])
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.get(f"/external-api/v1.0/rooms/{room.id}/")
+
+    assert response.status_code == 200
+    assert response.data["id"] == str(room.id)
+
+
+def test_api_rooms_create_with_valid_addons_token():
+    """Creating a room with a valid addons token should succeed."""
+    user = UserFactory()
+
+    token = generate_addons_test_token(user, [ApplicationScope.ROOMS_CREATE])
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.post("/external-api/v1.0/rooms/", {}, format="json")
+
+    assert response.status_code == 201
+    room = Room.objects.get(id=response.data["id"])
+    assert room.get_role(user) == RoleChoices.OWNER
+
+
+def test_api_rooms_addons_token_inactive_user():
+    """Addons token for an inactive user should return 401."""
+    user = UserFactory(is_active=False)
+    RoomFactory(users=[(user, RoleChoices.OWNER)])
+
+    token = generate_addons_test_token(user, [ApplicationScope.ROOMS_LIST])
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.get("/external-api/v1.0/rooms/")
+
+    assert response.status_code == 401
+    assert "user account is disabled" in str(response.data).lower()
+
+
+def test_api_rooms_addons_token_expired(settings):
+    """Listing rooms with an expired addons token should return 401."""
+    settings.ADDONS_TOKEN_TTL = 0
+
+    user = UserFactory()
+    token = generate_addons_test_token(user, [ApplicationScope.ROOMS_LIST])
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.get("/external-api/v1.0/rooms/")
+
+    assert response.status_code == 401
+    assert "expired" in str(response.data).lower()
+
+
+def test_api_rooms_addons_token_missing_user_id(settings):
+    """Addons token without user_id should be rejected."""
+
+    # Re-encode without user_id
+    now = datetime.now(timezone.utc)
+    payload = {
+        "iss": settings.ADDONS_TOKEN_ISSUER,
+        "aud": settings.ADDONS_TOKEN_AUDIENCE,
+        "iat": now,
+        "exp": now + timedelta(hours=1),
+        "scope": "rooms:list",
+        # no user_id
+    }
+    token = jwt.encode(
+        payload,
+        settings.ADDONS_TOKEN_SECRET_KEY,
+        algorithm=settings.ADDONS_TOKEN_ALG,
+    )
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.get("/external-api/v1.0/rooms/")
+
+    assert response.status_code == 401
+    assert "invalid token claims." in str(response.data).lower()
+
+
+def test_api_rooms_addons_token_invalid_audience(settings):
+    """Addons token with an invalid audience should be rejected."""
+    user = UserFactory()
+
+    now = datetime.now(timezone.utc)
+    payload = {
+        "iss": settings.ADDONS_TOKEN_ISSUER,
+        "aud": "invalid-audience",
+        "iat": now,
+        "exp": now + timedelta(hours=1),
+        "user_id": str(user.id),
+        "scope": "rooms:list",
+    }
+    token = jwt.encode(
+        payload,
+        settings.ADDONS_TOKEN_SECRET_KEY,
+        algorithm=settings.ADDONS_TOKEN_ALG,
+    )
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.get("/external-api/v1.0/rooms/")
+
+    assert response.status_code == 401
+    assert "invalid token." in str(response.data).lower()
+
+
+def test_api_rooms_addons_token_unknown_user(settings):
+    """Addons token for an unknown user should be rejected."""
+    now = datetime.now(timezone.utc)
+    payload = {
+        "iss": settings.ADDONS_TOKEN_ISSUER,
+        "aud": settings.ADDONS_TOKEN_AUDIENCE,
+        "iat": now,
+        "exp": now + timedelta(hours=1),
+        "user_id": str(uuid.uuid4()),
+        "scope": "rooms:list",
+    }
+    token = jwt.encode(
+        payload,
+        settings.ADDONS_TOKEN_SECRET_KEY,
+        algorithm=settings.ADDONS_TOKEN_ALG,
+    )
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.get("/external-api/v1.0/rooms/")
+
+    assert response.status_code == 401
+    assert "user not found." in str(response.data).lower()
+
+
+def test_api_rooms_addons_token_missing_scope():
+    """Addons token without required scope should return 403."""
+    user = UserFactory()
+
+    token = generate_addons_test_token(user, [ApplicationScope.ROOMS_CREATE])
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.get("/external-api/v1.0/rooms/")
+
+    assert response.status_code == 403
+    assert (
+        "insufficient permissions. required scope: rooms:list"
+        in str(response.data).lower()
+    )
+
+
+@mock.patch.object(ResourceServerAuthentication, "authenticate", return_value=None)
+def test_api_rooms_addons_token_invalid_signature(mock_rs_authenticate, settings):
+    """Addons token signed with a wrong key should defer to the next authentication."""
+    user = UserFactory()
+
+    now = datetime.now(timezone.utc)
+    payload = {
+        "iss": settings.ADDONS_TOKEN_ISSUER,
+        "aud": settings.ADDONS_TOKEN_AUDIENCE,
+        "iat": now,
+        "exp": now + timedelta(hours=1),
+        "user_id": str(user.id),
+        "scope": "rooms:list",
+    }
+    token = jwt.encode(
+        payload,
+        "invalid-private-key-padded-to-32b!",
+        algorithm=settings.ADDONS_TOKEN_ALG,
+    )
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.get("/external-api/v1.0/rooms/")
+
+    mock_rs_authenticate.assert_called()
+    assert response.status_code == 401
+
+
+@mock.patch.object(ResourceServerAuthentication, "authenticate", return_value=None)
+def test_api_rooms_addons_disabled_defers_to_next_backend(
+    mock_rs_authenticate, settings
+):
+    """When ADDONS_ENABLED is False, a valid addons token should defer to the next backend."""
+    settings.ADDONS_ENABLED = False
+
+    user = UserFactory()
+    token = generate_addons_test_token(user, [ApplicationScope.ROOMS_LIST])
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.get("/external-api/v1.0/rooms/")
+
+    mock_rs_authenticate.assert_called()
+    assert response.status_code == 401
+
+
+def test_api_rooms_addons_disabled_does_not_break_application_auth(settings):
+    """Disabling addons auth should not affect ApplicationJWTAuthentication."""
+    settings.ADDONS_ENABLED = False
+
+    user = UserFactory()
+    room = RoomFactory(users=[(user, RoleChoices.OWNER)])
+
+    # Use the existing application token helper — that backend should still work
+    token = generate_test_token(user, [ApplicationScope.ROOMS_LIST])
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.get("/external-api/v1.0/rooms/")
+
+    assert response.status_code == 200
+    assert response.data["count"] == 1
+    assert response.data["results"][0]["id"] == str(room.id)

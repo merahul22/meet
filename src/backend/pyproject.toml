@@ -7,7 +7,7 @@ build-backend = "uv_build"
 
 [project]
 name = "meet"
-version = "1.14.0"
+version = "1.15.0"
 authors = [{ "name" = "DINUM", "email" = "dev@mail.numerique.gouv.fr" }]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -33,7 +33,7 @@ dependencies = [
     "django-cors-headers==4.9.0",
     "django-countries==8.2.0",
     "django-filter==25.2",
-    "django-lasuite[all]==0.0.25",
+    "django-lasuite[all]==0.0.26",
     "django-parler==2.3",
     "redis==5.2.1",
     "django-redis==6.0.0",

@@ -865,6 +865,18 @@ class Base(Configuration):
         environ_name="APPLICATION_BASE_URL",
         environ_prefix=None,
     )
+    # External API delegation is intentionally conservative by default.
+    # Public rooms are only allowed when projects explicitly opt in.
+    EXTERNAL_API_ALLOW_PUBLIC_ACCESS = values.BooleanValue(
+        False,
+        environ_name="EXTERNAL_API_ALLOW_PUBLIC_ACCESS",
+        environ_prefix=None,
+    )
+    EXTERNAL_API_ALLOW_ROOMS_WITHOUT_LOBBY = values.BooleanValue(
+        False,
+        environ_name="EXTERNAL_API_ALLOW_ROOMS_WITHOUT_LOBBY",
+        environ_prefix=None,
+    )
     # Allows third-party platforms to create users with email-only identification.
     # Required for external integrations, but fragile due to deferred user reconciliation
     # on sub. Enable it with care /!\

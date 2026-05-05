@@ -2,8 +2,11 @@
 
 # pylint: disable=abstract-method
 
+from typing import Literal
+
 from django.conf import settings
 
+from pydantic import BaseModel, ValidationError
 from rest_framework import serializers
 
 from core import models, utils
@@ -19,6 +22,16 @@ class ApplicationJwtSerializer(BaseValidationOnlySerializer):
     client_secret = serializers.CharField(write_only=True)
     grant_type = serializers.ChoiceField(choices=[OAUTH2_GRANT_TYPE_CLIENT_CREDENTIALS])
     scope = serializers.CharField(write_only=True)
+
+
+class RoomConfiguration(BaseModel):
+    """Validate room configuration exposed through the external API."""
+
+    can_publish_sources: list[
+        Literal["microphone", "screen_share", "screen_share_audio", "camera"]
+    ] | None = None
+
+    model_config = {"extra": "forbid"}
 
 
 class RoomSerializer(serializers.ModelSerializer):
@@ -44,6 +57,32 @@ class RoomSerializer(serializers.ModelSerializer):
         model = models.Room
         fields = ["id", "name", "slug", "pin_code", "access_level", "configuration"]
         read_only_fields = ["id", "name", "slug", "pin_code"]
+
+    def validate_configuration(self, configuration):
+        """Validate room configuration values before saving."""
+        if configuration is None:
+            return configuration
+
+        try:
+            validated_configuration = RoomConfiguration.model_validate(configuration)
+        except ValidationError as exc:
+            raise serializers.ValidationError(
+                {"configuration": "Invalid room configuration."}
+            ) from exc
+
+        return validated_configuration.model_dump(exclude_none=True)
+
+    def validate_access_level(self, access_level):
+        """Restrict public rooms unless the external API explicitly allows them."""
+        if access_level == models.RoomAccessLevel.PUBLIC and not (
+            settings.EXTERNAL_API_ALLOW_PUBLIC_ACCESS
+            and settings.EXTERNAL_API_ALLOW_ROOMS_WITHOUT_LOBBY
+        ):
+            raise serializers.ValidationError(
+                "Public rooms are disabled for the external API."
+            )
+
+        return access_level
 
     def to_representation(self, instance):
         """Enrich response with application-specific computed fields."""

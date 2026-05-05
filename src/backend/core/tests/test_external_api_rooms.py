@@ -566,6 +566,7 @@ def test_api_rooms_create_success():
     assert "slug" in response.data
     assert "name" in response.data
     assert response.data["name"] == response.data["slug"]
+    assert response.data["configuration"] == {}
 
     # Verify room was created with user as owner
     room = Room.objects.get(id=response.data["id"])
@@ -573,8 +574,8 @@ def test_api_rooms_create_success():
     assert room.access_level == "trusted"
     assert room.configuration == {}
 
-def test_api_rooms_create_with_params_success():
-    """Creating a room with access_level and configuration should succeed."""
+def test_api_rooms_create_with_configuration_success():
+    """Creating a room with a validated configuration should succeed."""
 
     user = UserFactory()
 
@@ -584,25 +585,20 @@ def test_api_rooms_create_with_params_success():
 
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
-    
-    payload = {
-        "access_level": "restricted",
-        "configuration": {
-            "can_publish_sources": ["screen_share"],
-            "is_microphone_enabled": False
-        }
-    }
-    response = client.post("/external-api/v1.0/rooms/", payload, format="json")
+    response = client.post(
+        "/external-api/v1.0/rooms/",
+        {
+            "access_level": RoomAccessLevel.RESTRICTED,
+            "configuration": {"can_publish_sources": ["camera"]},
+        },
+        format="json",
+    )
 
     assert response.status_code == 201
-    
-    # Verify room was created with parameters
     room = Room.objects.get(id=response.data["id"])
-    assert room.access_level == "restricted"
-    assert room.configuration == {
-        "can_publish_sources": ["screen_share"],
-        "is_microphone_enabled": False
-    }
+    assert room.access_level == RoomAccessLevel.RESTRICTED
+    assert room.configuration == {"can_publish_sources": ["camera"]}
+    assert response.data["configuration"] == {"can_publish_sources": ["camera"]}
 
 
 def test_api_rooms_create_readonly_enforcement():
@@ -631,63 +627,97 @@ def test_api_rooms_create_readonly_enforcement():
     assert response.data["slug"] != "fake-slug"
     assert "id" in response.data
     assert response.data["name"] != "fake-name"
+    assert response.data["configuration"] == {}
 
     # Verify room was created with user as owner
     room = Room.objects.get(id=response.data["id"])
     assert room.get_role(user) == RoleChoices.OWNER
     assert room.access_level == "trusted"
+    assert room.configuration == {}
 
-
-def test_api_rooms_update_success():
-    """Updating a room should succeed with correct scope."""
+def test_api_rooms_create_rejects_invalid_configuration():
+    """Creating a room with unsupported configuration keys should fail."""
 
     user = UserFactory()
-    room = RoomFactory(users=[(user, RoleChoices.OWNER)], access_level=RoomAccessLevel.PUBLIC)
-
-    token = generate_test_token(
-        user,
-        [
-            ApplicationScope.ROOMS_UPDATE,
-        ],
-    )
+    token = generate_test_token(user, [ApplicationScope.ROOMS_CREATE])
 
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
-    
-    payload = {
-        "access_level": "restricted",
-        "configuration": {
-            "is_video_enabled": False
-        }
-    }
-    response = client.patch(f"/external-api/v1.0/rooms/{room.id}/", payload, format="json")
+    response = client.post(
+        "/external-api/v1.0/rooms/",
+        {
+            "configuration": {
+                "unsupported_flag": True,
+            }
+        },
+        format="json",
+    )
 
-    assert response.status_code == 200
-    
-    room.refresh_from_db()
-    assert room.access_level == "restricted"
-    assert room.configuration == {"is_video_enabled": False}
+    assert response.status_code == 400
+    assert "invalid room configuration" in str(response.data).lower()
 
 
-def test_api_rooms_delete_success():
-    """Deleting a room should succeed with correct scope."""
+def test_api_rooms_create_rejects_invalid_configuration_values():
+    """Creating a room with invalid configuration values should fail."""
 
     user = UserFactory()
-    room = RoomFactory(users=[(user, RoleChoices.OWNER)])
-
-    token = generate_test_token(
-        user,
-        [
-            ApplicationScope.ROOMS_DELETE,
-        ],
-    )
+    token = generate_test_token(user, [ApplicationScope.ROOMS_CREATE])
 
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
-    response = client.delete(f"/external-api/v1.0/rooms/{room.id}/")
+    response = client.post(
+        "/external-api/v1.0/rooms/",
+        {
+            "configuration": {
+                "can_publish_sources": ["invalid-source"],
+            }
+        },
+        format="json",
+    )
 
-    assert response.status_code == 204
-    assert not Room.objects.filter(id=room.id).exists()
+    assert response.status_code == 400
+    assert "invalid room configuration" in str(response.data).lower()
+
+
+def test_api_rooms_create_public_access_disabled_by_default():
+    """Public rooms should be disabled for the external API by default."""
+
+    user = UserFactory()
+    token = generate_test_token(user, [ApplicationScope.ROOMS_CREATE])
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.post(
+        "/external-api/v1.0/rooms/",
+        {"access_level": RoomAccessLevel.PUBLIC},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "public rooms are disabled" in str(response.data).lower()
+
+
+def test_api_rooms_create_public_access_enabled_with_settings(settings):
+    """Public rooms should be creatable when explicitly enabled."""
+
+    settings.EXTERNAL_API_ALLOW_PUBLIC_ACCESS = True
+    settings.EXTERNAL_API_ALLOW_ROOMS_WITHOUT_LOBBY = True
+
+    user = UserFactory()
+    token = generate_test_token(user, [ApplicationScope.ROOMS_CREATE])
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.post(
+        "/external-api/v1.0/rooms/",
+        {"access_level": RoomAccessLevel.PUBLIC},
+        format="json",
+    )
+
+    assert response.status_code == 201
+    room = Room.objects.get(id=response.data["id"])
+    assert room.access_level == RoomAccessLevel.PUBLIC
+    assert response.data["access_level"] == RoomAccessLevel.PUBLIC
 
 
 def test_api_rooms_response_no_url(settings):

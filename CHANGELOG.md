@@ -10,7 +10,20 @@ and this project adheres to
 
 ### Added
 
-- ✨(backend) allow room configuration and access level via external api #1260
+- 🔒️(backend) add validation of Room.configuration
+- ✨(helm) add support multiple transcribe worker / endpoint #1247
+- ✨(backend) make LiveKit Egress recording encoding configurable #1288
+
+### Fixed
+
+- ♻(frontend) standardize role terminology across localizations
+- 🐛(backend) make start-recording atomic and fault-tolerant
+- 🔒️(frontend) room ids are generated with non-cryptographic rand
+
+## [1.15.0] - 2026-04-30
+
+### Added
+
 - ✨(backend) add metadata collection of VAD, connection and chat events
 - ✨(backend) introduce add-ons authentication backend
 - 💬(backend) clarify french transcription audio download link text #1299
